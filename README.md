@@ -207,8 +207,8 @@ ask is read-only. If the model requests a mutation, Hephaestus denies it. Chat, 
 
 ## Current Limitations
 
-- The implemented design operation supports only differential-drive mobile robots for warehouse-style inspection.
-- Arm, drone, quadruped, Ackermann, mecanum, and other robot families are rejected instead of approximated.
+- The deterministic `hephaestus design` workflow currently provides end-to-end generation, simulation, and validated ROS 2 control for differential-drive warehouse inspection robots.
+- The default agent can create and visualize broader robot concepts using editable CadQuery geometry and Gazebo SDF, but reliable controllers, actuation, and motion validation are not guaranteed for non-differential-drive designs.
 - Simulation smoke testing requires the relevant ROS 2 controller packages to be installed on the host. If they are missing, Hephaestus reports the missing packages and does not launch.
 - Hephaestus does not install packages, create credentials, download Gazebo Fuel assets, or execute setup plans.
 - The default agent does not expose arbitrary shell access, package installation, arbitrary Python execution, real-hardware control, arbitrary provider-selected ROS topics, arbitrary launch arguments, or external ROS graph control.
