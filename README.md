@@ -11,7 +11,6 @@ Hephaestus AI is a robotics engineering CLI. The implemented system provides env
 > [PRIVACY.md](PRIVACY.md), and [RESPONSIBLE_USE.md](RESPONSIBLE_USE.md) before
 > use.
 
-The supported vertical slice is intentionally narrow: a rigid-chassis differential-drive mobile robot with two driven wheels, a passive caster, 2D LiDAR, IMU, payload requirement, local warehouse Gazebo world, ROS 2 Jazzy workspace, ros_gz bridge configuration, and gz_ros2_control configuration. Other robot families are not implemented by the design operation.
 
 ## Supported Platform
 
