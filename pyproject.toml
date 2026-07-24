@@ -4,10 +4,12 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "hephaestus-ai"
-version = "0.1.0.dev0"
-description = "Robotics engineering CLI foundation for Hephaestus AI."
+version = "0.1.0"
+description = "Local-first robotics engineering CLI for project modeling, diagnostics, and simulation workflows."
 readme = "README.md"
-requires-python = ">=3.12"
+requires-python = ">=3.12,<3.13"
+license = "Apache-2.0"
+license-files = ["LICENSE", "NOTICE"]
 authors = [{ name = "quantroninblue" }]
 dependencies = [
     "groq>=0.13",
@@ -18,25 +20,61 @@ dependencies = [
     "textual>=6.6,<7",
     "typer>=0.12",
 ]
+keywords = [
+    "robotics",
+    "engineering",
+    "ros2",
+    "gazebo",
+    "cadquery",
+    "simulation",
+    "cli",
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3 :: Only",
+    "Topic :: Scientific/Engineering",
+    "Topic :: Software Development :: Code Generators",
+]
 
 [project.optional-dependencies]
 cad = [
     "cadquery>=2.8,<2.9",
 ]
 dev = [
+    "build>=1.2",
     "hypothesis>=6.112",
     "pytest>=8.2",
     "ruff>=0.5",
+    "twine>=5.1",
+]
+release = [
+    "build>=1.2",
+    "twine>=5.1",
 ]
 
 [project.scripts]
 hephaestus = "hephaestus.cli:app"
 
 [project.urls]
+Documentation = "https://github.com/quantroninblue/Hephaestus#readme"
+Issues = "https://github.com/quantroninblue/Hephaestus/issues"
 Repository = "https://github.com/quantroninblue/Hephaestus"
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.setuptools.package-data]
+hephaestus = [
+    "legal/LICENSE",
+    "legal/NOTICE",
+    "legal/*.md",
+]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

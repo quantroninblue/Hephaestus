@@ -153,6 +153,16 @@
 - Do not add roadmaps, teaser sections, or descriptions of unimplemented capabilities.
 - Do not link to or mention `project_state.txt` from `README.md`.
 
+## Packaging Rules
+
+- The public PyPI distribution name is `hephaestus-ai`; the installed CLI command remains `hephaestus`.
+- Release metadata must keep the author/copyright identity as `quantroninblue` with no personal email.
+- Runtime dependencies must not include development or release-only tooling such as pytest, Ruff, build, or Twine.
+- Wheel and sdist archives must include installed-package-safe legal resources for README/legal overview, SAFETY.md, PRIVACY.md, SECURITY.md, RESPONSIBLE_USE.md, THIRD_PARTY_NOTICES.md, LICENSE, and NOTICE.
+- Installed `/legal` behavior must work from arbitrary project directories without depending on the source checkout or a developer home directory.
+- Release archives must not include `project_state.txt`, tests, caches, generated artifacts, virtual environments, credentials, or developer-machine paths.
+- Packaging verification may build and check local wheel/sdist artifacts, but must not upload to PyPI/TestPyPI, create a GitHub release, request publishing tokens, or read credentials.
+
 ## Git Rules
 
 - Do not initialize Git unless the user explicitly requests it.

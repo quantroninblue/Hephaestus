@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import tomllib
+from importlib import resources
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -140,6 +141,22 @@ def test_required_release_safety_files_are_exact() -> None:
         assert (ROOT / name).read_text(encoding="utf-8") == expected
 
 
+def test_installed_legal_resources_match_public_root_documents() -> None:
+    for name in (
+        "README.md",
+        "LICENSE",
+        "NOTICE",
+        "PRIVACY.md",
+        "SAFETY.md",
+        "SECURITY.md",
+        "RESPONSIBLE_USE.md",
+        "THIRD_PARTY_NOTICES.md",
+    ):
+        packaged = resources.files("hephaestus").joinpath("legal", name)
+        assert packaged.is_file()
+        assert packaged.read_bytes() == (ROOT / name).read_bytes()
+
+
 def test_package_metadata_uses_public_pseudonym_without_email() -> None:
     pyproject = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))
     project = pyproject["project"]
@@ -148,6 +165,8 @@ def test_package_metadata_uses_public_pseudonym_without_email() -> None:
     assert "maintainers" not in project
     assert all("email" not in author for author in project["authors"])
     assert project["urls"]["Repository"] == "https://github.com/quantroninblue/Hephaestus"
+    assert project["urls"]["Issues"] == "https://github.com/quantroninblue/Hephaestus/issues"
+    assert project["urls"]["Documentation"] == "https://github.com/quantroninblue/Hephaestus#readme"
 
 
 def test_readme_contains_exact_warning_after_description() -> None:

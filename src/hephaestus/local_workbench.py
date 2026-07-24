@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass
+from importlib import resources
 from pathlib import Path
 from typing import Any
 
@@ -35,6 +36,7 @@ LEGAL_DOCUMENTS: tuple[tuple[str, str | None], ...] = (
     ("LICENSE", "LICENSE"),
     ("NOTICE", "NOTICE"),
 )
+LEGAL_RESOURCE_DIR = "legal"
 
 
 @dataclass(frozen=True, slots=True)
@@ -217,7 +219,9 @@ class LocalWorkbenchSession:
         if path is None or path.startswith("https://"):
             return True
         candidate = self.workspace_root / path
-        return candidate.is_file()
+        if candidate.is_file():
+            return True
+        return _packaged_legal_resource_available(path)
 
     def _cad(self, args: list[str], confirm: ConfirmCallback | None) -> LocalCommandResult:
         if len(args) != 2 or args[0] != "build":
@@ -426,6 +430,13 @@ def standalone_gazebo_validate(workspace_root: Path, world: str) -> dict[str, An
         ToolCall("standalone_gazebo_validate", "gazebo_validate_sdf", {"relative_path": world}),
         allow_mutation=True,
     )
+
+
+def _packaged_legal_resource_available(path: str) -> bool:
+    try:
+        return resources.files("hephaestus").joinpath(LEGAL_RESOURCE_DIR, path).is_file()
+    except (FileNotFoundError, ModuleNotFoundError, TypeError):
+        return False
 
 
 def _tool_result(command: str, result: Mapping[str, Any]) -> LocalCommandResult:

@@ -23,27 +23,37 @@ Hephaestus AI is a robotics engineering CLI. The implemented system provides env
 
 Hephaestus Core remains usable when optional AI, ROS, Gazebo, integration, or CAD capabilities are missing. Capability-dependent commands fail closed with actionable diagnostics.
 
-## Setup
+## Installation
 
-Create and activate a local virtual environment:
-
-```bash
-python3.12 -m venv .venv
-source .venv/bin/activate
-```
-
-Install the package in editable mode with development dependencies:
+Recommended Ubuntu prerequisites:
 
 ```bash
-python -m pip install --upgrade pip
-python -m pip install -e ".[dev]"
+sudo apt install python3.12 python3.12-venv pipx
+python3.12 -m pipx ensurepath
 ```
 
-Install CadQuery support when real CAD generation is needed:
+Install Hephaestus with CadQuery support:
 
 ```bash
-python -m pip install -e ".[dev,cad]"
+pipx install "hephaestus-ai[cad]"
 ```
+
+Install the base package without CadQuery:
+
+```bash
+pipx install hephaestus-ai
+```
+
+ROS 2 Jazzy, Gazebo Harmonic, ros_gz_sim, ros_gz_bridge, and gz_ros2_control are host dependencies for build and simulation workflows. They are detected by Hephaestus and are not installed by pipx. Hephaestus Core remains usable when optional AI, ROS, Gazebo, integration, or CAD capabilities are missing. Capability-dependent commands fail closed with actionable diagnostics.
+
+Enter any project directory and start Hephaestus:
+
+```bash
+cd /path/to/your/project
+hephaestus
+```
+
+Running `hephaestus` with no subcommand starts the Forge TUI when the terminal supports it, or the safe plain fallback otherwise.
 
 ## AI Setup
 
@@ -53,13 +63,25 @@ Hephaestus uses Groq for AI requests. The API key is read only from the runtime 
 export GROQ_API_KEY="..."
 ```
 
-Store non-secret AI settings:
+Store non-secret AI settings without storing or printing the key:
 
 ```bash
-hephaestus ai configure
 hephaestus ai configure --model openai/gpt-oss-120b
 hephaestus ai configure --default-agent-max-tool-rounds 16
 hephaestus ai status --json
+```
+
+## Development From Source
+
+Use source installation only for developing Hephaestus itself:
+
+```bash
+git clone https://github.com/quantroninblue/Hephaestus.git
+cd Hephaestus
+python3.12 -m venv .venv
+source .venv/bin/activate
+python -m pip install --upgrade pip
+python -m pip install -e ".[dev,cad]"
 ```
 
 ## Engineering Project File
