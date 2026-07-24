@@ -109,6 +109,7 @@ class CapabilityContext:
     env: Mapping[str, str] = field(default_factory=lambda: os.environ)
     project_root: Path = field(default_factory=lambda: Path(__file__).resolve().parents[2])
     sys_prefix: str = field(default_factory=lambda: sys.prefix)
+    sys_base_prefix: str = field(default_factory=lambda: sys.base_prefix)
     python_version: tuple[int, int, int] = field(default_factory=lambda: sys.version_info[:3])
     system: str = field(default_factory=platform.system)
     machine: str = field(default_factory=platform.machine)
@@ -283,18 +284,20 @@ class CoreDetector(CapabilityDetector):
             and context.machine == SUPPORTED_ARCHITECTURE
         )
         python_ok = context.python_version[:2] == (3, 12)
-        venv_ok = _same_resolved_path(Path(context.sys_prefix), context.project_root / ".venv")
+        isolated_runtime_ok = _is_isolated_python_runtime(context)
         model_ok = _model_runtime_available()
         status = (
             CapabilityStatus.ACTIVE
-            if all((platform_ok, python_ok, venv_ok, model_ok))
+            if all((platform_ok, python_ok, isolated_runtime_ok, model_ok))
             else CapabilityStatus.INCOMPATIBLE
         )
         evidence = (
             f"os={os_release.get('PRETTY_NAME') or context.system or 'unknown'}",
             f"architecture={context.machine or 'unknown'}",
             f"python={'.'.join(str(part) for part in context.python_version)}",
-            "project_venv=active" if venv_ok else "project_venv=not active",
+            "runtime_environment=isolated"
+            if isolated_runtime_ok
+            else "runtime_environment=not isolated",
             "canonical_model=available" if model_ok else "canonical_model=unavailable",
         )
         return CapabilityResult(
@@ -307,7 +310,7 @@ class CoreDetector(CapabilityDetector):
             else CompatibilityStatus.INCOMPATIBLE,
             required_for_core=True,
             detected_version="Python " + ".".join(str(part) for part in context.python_version),
-            expected="Ubuntu 24.04, x86_64, Python 3.12, project .venv",
+            expected="Ubuntu 24.04, x86_64, Python 3.12, isolated Python environment",
             evidence=evidence,
             remediation_id=None
             if status is CapabilityStatus.ACTIVE
@@ -731,6 +734,10 @@ def _installed_gazebo_evidence(installed_infos: tuple[GazeboVersionInfo, ...]) -
     versions = ",".join(info.version or "unknown" for info in installed_infos)
     releases = ",".join(dict.fromkeys(info.release or "unverified" for info in installed_infos))
     return (f"installed_versions={versions}", f"installed_releases={releases}")
+
+
+def _is_isolated_python_runtime(context: CapabilityContext) -> bool:
+    return not _same_resolved_path(Path(context.sys_prefix), Path(context.sys_base_prefix))
 
 
 def _same_resolved_path(left: Path, right: Path) -> bool:

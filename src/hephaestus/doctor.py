@@ -139,6 +139,7 @@ def collect_diagnostics(
     env: dict[str, str] | None = None,
     project_root: Path | None = None,
     sys_prefix: str | None = None,
+    sys_base_prefix: str | None = None,
     python_version: PythonVersion | None = None,
     system: str | None = None,
     machine: str | None = None,
@@ -159,6 +160,8 @@ def collect_diagnostics(
         context_kwargs["project_root"] = project_root
     if sys_prefix is not None:
         context_kwargs["sys_prefix"] = sys_prefix
+    if sys_base_prefix is not None:
+        context_kwargs["sys_base_prefix"] = sys_base_prefix
     if python_version is not None:
         context_kwargs["python_version"] = python_version
     if system is not None:
