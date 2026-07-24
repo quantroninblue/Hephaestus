@@ -17,6 +17,7 @@ from hephaestus import __version__
 from hephaestus.local_workbench import LEGAL_DOCUMENTS, LocalWorkbenchSession
 
 ROOT = Path(__file__).resolve().parents[1]
+CURRENT_VERSION = "0.1.1"
 ANSI_RE = re.compile(r"\x1b\[[0-?]*[ -/]*[@-~]")
 LEGAL_RESOURCE_NAMES = {
     "README.md",
@@ -62,8 +63,8 @@ def test_wheel_sdist_metadata_contents_and_installed_cli(tmp_path: Path) -> None
         cwd=ROOT,
         check=True,
     )
-    wheel = _single(dist_dir.glob("hephaestus_ai-0.1.0-py3-none-any.whl"))
-    sdist = _single(dist_dir.glob("hephaestus_ai-0.1.0.tar.gz"))
+    wheel = _single(dist_dir.glob(f"hephaestus_ai-{CURRENT_VERSION}-py3-none-any.whl"))
+    sdist = _single(dist_dir.glob(f"hephaestus_ai-{CURRENT_VERSION}.tar.gz"))
 
     with zipfile.ZipFile(wheel) as archive:
         wheel_names = archive.namelist()
@@ -77,7 +78,7 @@ def test_wheel_sdist_metadata_contents_and_installed_cli(tmp_path: Path) -> None
         entry_points = archive.read(entry_points_name).decode("utf-8")
 
     assert metadata["Name"] == "hephaestus-ai"
-    assert metadata["Version"] == "0.1.0"
+    assert metadata["Version"] == CURRENT_VERSION
     assert metadata["License-Expression"] == "Apache-2.0"
     assert metadata["Author"] == "quantroninblue"
     assert not metadata.get_all("Author-email")
@@ -102,8 +103,11 @@ def test_wheel_sdist_metadata_contents_and_installed_cli(tmp_path: Path) -> None
         sdist_names = archive.getnames()
     _assert_archive_policy(sdist_names)
     for resource_name in LEGAL_RESOURCE_NAMES:
-        assert f"hephaestus_ai-0.1.0/{resource_name}" in sdist_names
-        assert f"hephaestus_ai-0.1.0/src/hephaestus/legal/{resource_name}" in sdist_names
+        assert f"hephaestus_ai-{CURRENT_VERSION}/{resource_name}" in sdist_names
+        assert (
+            f"hephaestus_ai-{CURRENT_VERSION}/src/hephaestus/legal/{resource_name}"
+            in sdist_names
+        )
 
     venv_dir = tmp_path / "venv"
     venv.EnvBuilder(with_pip=True).create(venv_dir)
@@ -132,7 +136,30 @@ def test_wheel_sdist_metadata_contents_and_installed_cli(tmp_path: Path) -> None
     help_result = _run_installed(hephaestus, "--help", cwd=work_dir, env=env)
     assert "Hephaestus AI robotics engineering CLI" in help_result.stdout
     version_result = _run_installed(hephaestus, "--version", cwd=work_dir, env=env)
-    assert version_result.stdout.strip() == "hephaestus 0.1.0"
+    assert version_result.stdout.strip() == f"hephaestus {CURRENT_VERSION}"
+
+    capabilities_result = _run_installed(
+        hephaestus, "capabilities", "--json", cwd=work_dir, env=env
+    )
+    assert not ANSI_RE.search(capabilities_result.stdout)
+    capabilities_payload = json.loads(capabilities_result.stdout)
+    core = _capability_by_id(capabilities_payload, "core")
+    assert capabilities_payload["core_status"] == "ready"
+    assert core["status"] == "active"
+    assert core["compatibility"] == "supported"
+    assert "runtime_environment=isolated" in core["evidence"]
+    assert "project_venv" not in capabilities_result.stdout
+    assert "project .venv" not in capabilities_result.stdout
+
+    doctor_result = _run_installed(hephaestus, "doctor", "--json", cwd=work_dir, env=env)
+    assert not ANSI_RE.search(doctor_result.stdout)
+    doctor_payload = json.loads(doctor_result.stdout)
+    doctor_core = _capability_by_id(doctor_payload, "core")
+    assert doctor_payload["status"] == "ready"
+    assert doctor_core["status"] == "active"
+    assert doctor_core["compatibility"] == "supported"
+    assert "project_venv" not in doctor_result.stdout
+    assert "project .venv" not in doctor_result.stdout
 
     status_result = _run_installed(hephaestus, "ai", "status", "--json", cwd=work_dir, env=env)
     assert not ANSI_RE.search(status_result.stdout)
@@ -163,6 +190,16 @@ def _single(values) -> Path:
     return items[0]
 
 
+def _capability_by_id(payload: dict[str, object], capability_id: str) -> dict[str, object]:
+    capabilities = payload["capabilities"]
+    assert isinstance(capabilities, list)
+    for item in capabilities:
+        assert isinstance(item, dict)
+        if item.get("id") == capability_id:
+            return item
+    raise AssertionError(f"missing capability: {capability_id}")
+
+
 def _assert_archive_policy(names: list[str]) -> None:
     for name in names:
         normalized = name.replace("\\", "/")
@@ -183,6 +220,7 @@ def _installed_cli_env() -> dict[str, str]:
     env = os.environ.copy()
     env.pop("GROQ_API_KEY", None)
     env.pop("PYTHONPATH", None)
+    env.pop("VIRTUAL_ENV", None)
     env["NO_COLOR"] = "1"
     env["TERM"] = "dumb"
     dependency_paths = [path for path in site.getsitepackages() if Path(path).is_dir()]

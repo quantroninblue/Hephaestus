@@ -27,6 +27,8 @@ def _context(
     tmp_path: Path,
     *,
     env: dict[str, str] | None = None,
+    sys_prefix: str | None = None,
+    sys_base_prefix: str | None = None,
     which: dict[str, str | None] | None = None,
     specs: set[str] | None = None,
     versions: dict[str, str | None] | None = None,
@@ -50,7 +52,8 @@ def _context(
     return CapabilityContext(
         env=environment,
         project_root=tmp_path,
-        sys_prefix=str(tmp_path / ".venv"),
+        sys_prefix=sys_prefix or str(tmp_path / ".venv"),
+        sys_base_prefix=sys_base_prefix or str(tmp_path / "base-python"),
         python_version=(3, 12, 3),
         system="Linux",
         machine="x86_64",
@@ -69,6 +72,103 @@ def _context(
 
 def _by_id(report):
     return report.by_id()
+
+
+def test_pipx_private_venv_core_runtime_is_ready_without_project_venv(
+    monkeypatch, tmp_path: Path
+) -> None:
+    from hephaestus.doctor import collect_diagnostics
+
+    external_project = tmp_path / "external_project"
+    external_project.mkdir()
+    monkeypatch.chdir(external_project)
+    pipx_prefix = tmp_path / "pipx" / "venvs" / "hephaestus-ai"
+    base_prefix = tmp_path / "python-base"
+    context = _context(
+        external_project,
+        env={"HEPHAESTUS_CONFIG_DIR": str(tmp_path / "config")},
+        sys_prefix=str(pipx_prefix),
+        sys_base_prefix=str(base_prefix),
+    )
+
+    assert "VIRTUAL_ENV" not in context.env
+    assert not (external_project / ".venv").exists()
+
+    report = collect_capabilities(context)
+    core = report.by_id()["core"]
+    capability_json = json.dumps(report.to_dict(), sort_keys=True)
+
+    assert core.status is CapabilityStatus.ACTIVE
+    assert core.compatibility is CompatibilityStatus.SUPPORTED
+    assert report.to_dict()["core_status"] == "ready"
+    assert "runtime_environment=isolated" in core.evidence
+    assert "project_venv" not in capability_json
+    assert "project .venv" not in capability_json
+    assert str(tmp_path) not in capability_json
+    assert "\x1b[" not in capability_json
+
+    monkeypatch.setattr(cli, "collect_capabilities", lambda: report)
+    capabilities_result = runner.invoke(cli.app, ["capabilities", "--json"])
+    capabilities_payload = json.loads(capabilities_result.output)
+
+    assert capabilities_result.exit_code == 0
+    assert capabilities_payload["core_status"] == "ready"
+    assert capabilities_payload["capabilities"][0]["status"] == "active"
+    assert capabilities_payload["capabilities"][0]["compatibility"] == "supported"
+    assert "\x1b[" not in capabilities_result.output
+    assert str(tmp_path) not in capabilities_result.output
+
+    def fake_collect_diagnostics(*, required_capabilities=()):
+        return collect_diagnostics(
+            env=context.env,
+            project_root=context.project_root,
+            sys_prefix=context.sys_prefix,
+            sys_base_prefix=context.sys_base_prefix,
+            python_version=context.python_version,
+            system=context.system,
+            machine=context.machine,
+            os_release_provider=context.os_release_provider,
+            which=context.which,
+            find_spec=context.find_spec,
+            package_version=context.package_version,
+            run=context.run,
+            list_dir_names=context.list_dir_names,
+            required_capabilities=tuple(required_capabilities),
+        )
+
+    monkeypatch.setattr(cli, "collect_diagnostics", fake_collect_diagnostics)
+    doctor_result = runner.invoke(cli.app, ["doctor", "--json"])
+    doctor_payload = json.loads(doctor_result.output)
+
+    assert doctor_result.exit_code == 0
+    assert doctor_payload["status"] == "ready"
+    assert doctor_payload["checks"][0]["status"] == "ready"
+    assert doctor_payload["capabilities"][0]["status"] == "active"
+    assert doctor_payload["capabilities"][0]["compatibility"] == "supported"
+    assert "\x1b[" not in doctor_result.output
+    assert str(tmp_path) not in doctor_result.output
+
+
+def test_non_isolated_system_interpreter_is_not_reported_as_supported(
+    tmp_path: Path,
+) -> None:
+    interpreter_prefix = tmp_path / "system-python"
+    report = collect_capabilities(
+        _context(
+            tmp_path,
+            sys_prefix=str(interpreter_prefix),
+            sys_base_prefix=str(interpreter_prefix),
+        )
+    )
+    core = report.by_id()["core"]
+    payload = json.dumps(report.to_dict(), sort_keys=True)
+
+    assert core.status is CapabilityStatus.INCOMPATIBLE
+    assert core.compatibility is CompatibilityStatus.INCOMPATIBLE
+    assert report.core_ready is False
+    assert report.to_dict()["core_status"] == "not_ready"
+    assert "runtime_environment=not isolated" in core.evidence
+    assert "project_venv" not in payload
 
 
 def test_capabilities_active_supported_stack_is_deterministic_and_secret_free(

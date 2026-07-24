@@ -127,7 +127,7 @@ REMEDIATIONS: dict[str, RemediationMetadata] = {
         remediation_id="remediation.core.environment",
         capability_id="core",
         desired_state=(
-            "Ubuntu 24.04 on x86_64 with Python 3.12 and the project virtual environment active"
+            "Ubuntu 24.04 on x86_64 with Python 3.12 in an isolated Python environment"
         ),
         enables="Hephaestus core CLI execution, project files, validation, and local diagnostics.",
         why_optional="This is required for supported development; other platforms are unverified.",
@@ -140,7 +140,7 @@ REMEDIATIONS: dict[str, RemediationMetadata] = {
         expected_download=None,
         expected_disk_impact=None,
         reversible="Depends on the local Python and virtual-environment changes made manually.",
-        affected_paths=("project .venv",),
+        affected_paths=("isolated Python environment",),
         official_docs=("https://docs.python.org/3/library/venv.html",),
         verification_checks=("core",),
     ),
