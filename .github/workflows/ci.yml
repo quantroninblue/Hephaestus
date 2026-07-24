@@ -1,0 +1,49 @@
+name: CI
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Tests (Python 3.12)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: pyproject.toml
+
+      - name: Upgrade packaging tools
+        run: python -m pip install --upgrade pip
+
+      - name: Install Hephaestus
+        run: python -m pip install -e ".[dev,cad]"
+
+      - name: Run tests
+        run: python -m pytest
+
+      - name: Run Ruff
+        run: python -m ruff check .
+
+      - name: Compile Python sources
+        run: python -m compileall -q src tests
+
+      - name: Check installed dependencies
+        run: python -m pip check
